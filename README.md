@@ -45,6 +45,8 @@ Notes (all measured on this machine):
 - **`--threads 1`** — torch intra-op threading *hurts* this workload on Apple Silicon (many small ops; thread hand-off costs more than it saves). On the reference machine one thread beats four by ~25%.
 - **Why the pure-CPU path stays behind:** Photon's kernels compute directly from the 2-bit packed weights with NEON int8 dot-products (`gemm8`), quantize activations to int8, and fuse whole conformer blocks into single passes; this port materializes fp32 weights (~1.2 GB vs 160 MB packed) and runs stock `torch` ops, and dynamic int8 is unavailable in torch builds for macOS ARM (no functional quantized engine — `NoQEngine`). Other levers measured and not taken: `torch.compile` (~20% slower than eager on CPU, +2% on MPS), `scaled_dot_product_attention` fusing of the attention core (dispatches −10%, wall time unchanged), a bit-exact manual LSTM cell for the decode loop (~10% of decode, <3% end-to-end), and a faster shifted depthwise-conv formulation that flipped borderline words on one clip.
 
+Step-by-step reproduction, from fresh clone to verified run: [Reproduce Photon speed](#reproduce-photon-speed-apple-silicon).
+
 ## Quickstart
 
 Requires Python ≥ 3.10, PyTorch, numpy, and `ffmpeg` on PATH (for audio decoding).
@@ -62,8 +64,9 @@ git lfs pull          # or, without LFS:  python scripts/download_model.py
 # CLI
 parakeet-redux-torch testdata/bcn_weather.mp3 --words
 
-# fastest configuration on Apple Silicon, ~37x realtime (see Speed section;
-# fp16 encoder = approximate numerics, drop the flag for the exact path)
+# fastest configuration on Apple Silicon, ~37x realtime (details and
+# verification: the "Reproduce Photon speed" section below; fp16 =
+# approximate numerics, drop the flag for the strict-exact path)
 parakeet-redux-torch testdata/bcn_weather.mp3 --threads 1 --encoder-device mps --encoder-dtype float16
 ```
 
@@ -79,6 +82,80 @@ result = transcriber.transcribe("audio.wav", with_words=True)
 print(result["text"])
 print(result["words"][:3])   # [{'word': 'Yesterday', 'start': 0.64, 'end': 1.36}, ...]
 ```
+
+## Reproduce Photon speed (Apple Silicon)
+
+Everything below runs on **stock PyTorch — the `moondream` package is not installed** (step 4 is the only optional exception: a throwaway venv used purely to time the official engine for comparison). Reference machine: M1 (16 GB), Python 3.11, torch 2.14.1.
+
+**1. Code, weights, environment (one-time):**
+
+```bash
+# git-lfs is how the weights ship (one-time: brew install git-lfs && git lfs install)
+git clone https://github.com/chemcoder-2020/parakeet-redux-torch
+cd parakeet-redux-torch
+git lfs pull                        # weights/ (~178 MB); no git-lfs? python scripts/download_model.py
+
+python -m venv .venv && source .venv/bin/activate
+pip install -e .                    # torch + numpy only — nothing else
+```
+
+**2. Transcribe at Photon speed:**
+
+```bash
+parakeet-redux-torch testdata/bcn_weather.mp3 --threads 1 --encoder-device mps --encoder-dtype float16
+```
+
+Output on the reference machine:
+
+```
+Yesterday it was 35 degrees in Barcelona, but today the temperature will go down to minus 20 degrees.
+
+[audio 11.04s | wall 0.42s | 26.52x realtime]
+```
+
+(A fresh CLI process includes Metal kernel warm-up; warmed in-process timing — what the Speed table reports — is ~0.30 s, i.e. ~37× realtime.)
+
+What each flag does:
+
+- `--threads 1` — one intra-op thread beats four by ~25% here: the encoder is thousands of small ops and thread hand-off costs more than it saves.
+- `--encoder-device mps` — runs the encoder on the Apple GPU; the greedy TDT decoder stays on CPU (per-step dispatch dominates its tiny tensors on the GPU).
+- `--encoder-dtype float16` — the encoder in half precision, the same convention as Photon's GPU path: ~30% faster. Approximate numerics — see the caveats; drop the flag for the strict-exact path (0.37 s / 0.52 s, still ~30× realtime).
+
+**3. Reproduce and verify (one command):**
+
+```bash
+python scripts/verify_photon_speed.py
+```
+
+Runs all six reference clips through the same configuration, checks every transcript against the recorded Photon outputs (`testdata/ref_*.json`), prints warmed wall times, and exits non-zero on any mismatch. Reference result:
+
+```
+PASS  bcn_weather.mp3                    0.301 s
+PASS  librispeech_mr_quilter.wav         0.222 s
+PASS  fleur_es_sample.wav                0.230 s
+PASS  en-Alice_woman.wav                 0.273 s
+PASS  mary_had_lamb.mp3                  0.436 s
+PASS  f2641_0_throatclearing.wav         0.127 s
+
+identical transcripts: 6/6
+```
+
+`--dtype float32` switches it to the exact-numerics hybrid; `--device cpu` to the CPU path.
+
+**4. (Optional) time the official engine yourself.** Only this step needs the `moondream` package, in a separate venv, only for comparison — nothing at runtime depends on it:
+
+```bash
+python -m venv .venv-ref
+.venv-ref/bin/pip install "moondream>=2.4.1"
+.venv-ref/bin/python scripts/timing_reference.py
+# testdata/bcn_weather.mp3: ~0.35s ...  (this is the "Photon CPU" column of the Speed table)
+```
+
+**Caveats:**
+
+- `--encoder-dtype float16` is approximate (encoder output drifts ≤ ~4e-4 vs fp32). It matches all six oracle transcripts, but rounding can in principle flip a borderline greedy decision on other audio — which is why fp32 stays the default.
+- MPS needs Apple Silicon (`torch.backends.mps.is_available()`). On other hardware use `--threads 1` on CPU (exact, 13–20× realtime); CUDA is untested.
+- All numbers are warmed, min-of-repeated-runs, model load excluded — compare like-for-like only.
 
 ## How it works
 
@@ -106,6 +183,7 @@ scripts/
   compare_with_reference.py  run this port on all test files, diff vs references, save ours_*.json
   inspect_pipeline.py        stage-by-stage pipeline printout (mel/encoder/decode)
   verify_mel_vs_librosa.py   independent frontend verification vs librosa
+  verify_photon_speed.py     one-command Photon-speed reproduction (MPS+fp16 hybrid; checks all six transcripts)
   timing_reference.py        warmed-up Photon timing
 tests/                  pytest suite (unpack checksums + end-to-end transcription)
 testdata/               small public samples + recorded reference/our outputs (see testdata/README.md)
