@@ -1,0 +1,20 @@
+NOTICE — parakeet-redux weights
+
+These model files are a mirror of the upstream Hugging Face repository
+  https://huggingface.co/moondream/parakeet-redux
+by Moondream (https://moondream.ai), licensed under
+Creative Commons Attribution 4.0 International (CC-BY-4.0).
+
+Full license text: LICENSE (in this directory).
+Upstream model card: README.md (in this directory).
+
+Copied unmodified from the upstream repository: model.safetensors,
+config.json, ternary.json, tokenizer.json, README.md (model card),
+.eval_results/open_asr_leaderboard.yaml. Per-file SHA256 checksums are
+in checksums.txt; verify after checkout with:
+
+    git lfs pull && shasum -a 256 -c weights/checksums.txt
+
+This GitHub repository additionally contains an independent pure-PyTorch
+runtime for these weights (see the repository root README.md). That code
+is Apache-2.0 and is not part of the upstream model release.

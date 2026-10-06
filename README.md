@@ -54,8 +54,9 @@ cd parakeet-redux-torch
 python -m venv .venv && source .venv/bin/activate
 pip install -e .
 
-# download the weights (~178 MB, CC-BY-4.0) into ./weights
-python scripts/download_model.py
+# weights (~178 MB, CC-BY-4.0) ship in-repo via Git LFS — a `git clone` with
+# git-lfs installed fetches them automatically; otherwise:
+git lfs pull          # or, without LFS:  python scripts/download_model.py
 
 # CLI
 parakeet-redux-torch testdata/bcn_weather.mp3 --words
@@ -106,6 +107,7 @@ scripts/
   timing_reference.py        warmed-up Photon timing
 tests/                  pytest suite (unpack checksums + end-to-end transcription)
 testdata/               small public samples + recorded reference/our outputs (see testdata/README.md)
+weights/                model files shipped via Git LFS (CC-BY-4.0) + upstream card, notice, checksums
 ```
 
 ## Notes and limitations
@@ -117,6 +119,6 @@ testdata/               small public samples + recorded reference/our outputs (s
 
 ## Attribution & licenses
 
-- Model weights: [`moondream/parakeet-redux`](https://huggingface.co/moondream/parakeet-redux) by Moondream — **CC-BY-4.0**, based on NVIDIA's `parakeet-tdt-0.6b-v3` (CC-BY-4.0). Weights are *not* included in this repo; `scripts/download_model.py` fetches them.
+- Model weights: [`moondream/parakeet-redux`](https://huggingface.co/moondream/parakeet-redux) by Moondream — **CC-BY-4.0**, based on NVIDIA's `parakeet-tdt-0.6b-v3` (CC-BY-4.0). The weights ship in this repo via Git LFS (`weights/`), with the license text (`weights/LICENSE`), attribution (`weights/NOTICE`), the upstream model card (`weights/README.md`), and per-file SHA256s (`weights/checksums.txt`). `scripts/download_model.py` can still fetch a fresh copy from Hugging Face.
 - This code: Apache-2.0. Developed by clean-rooming against the HuggingFace Parakeet reference implementations and the publicly documented file formats; the `moondream` package is only used by verification scripts, never at runtime.
 - Test audio from [`hf-internal-testing/dummy-audio-samples`](https://huggingface.co/datasets/hf-internal-testing/dummy-audio-samples).

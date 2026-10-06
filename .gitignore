@@ -4,8 +4,8 @@
 venv/
 env/
 
-# model weights (downloaded from HuggingFace, CC-BY-4.0, not part of this repo)
-weights/
+# model weights ship in-repo via Git LFS (CC-BY-4.0 — see weights/{README,LICENSE,NOTICE})
+weights/.cache/
 
 # reference sources cloned/fetched during development
 refs/
