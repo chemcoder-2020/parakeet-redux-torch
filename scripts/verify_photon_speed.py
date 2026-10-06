@@ -36,7 +36,7 @@ REFERENCE_WALL = {"bcn_weather.mp3": 0.30, "mary_had_lamb.mp3": 0.43}
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--device", default="mps", help="encoder device (mps or cpu; default mps)")
+    ap.add_argument("--device", default="mps", help="encoder device (mps, cuda or cpu; default mps)")
     ap.add_argument("--dtype", choices=["float32", "float16"], default="float16",
                     help="encoder dtype (default float16 = Photon-speed config; "
                          "float16 numerics are approximate)")
@@ -48,6 +48,10 @@ def main() -> int:
     torch.set_num_threads(args.threads)
     if args.device == "mps" and not torch.backends.mps.is_available():
         print("MPS is not available in this torch build / machine.")
+        print("Re-run with:  python scripts/verify_photon_speed.py --device cpu")
+        return 1
+    if args.device == "cuda" and not torch.cuda.is_available():
+        print("CUDA is not available in this torch build / machine.")
         print("Re-run with:  python scripts/verify_photon_speed.py --device cpu")
         return 1
 

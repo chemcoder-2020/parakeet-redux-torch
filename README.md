@@ -157,6 +157,14 @@ python -m venv .venv-ref
 - MPS needs Apple Silicon (`torch.backends.mps.is_available()`). On other hardware use `--threads 1` on CPU (exact, 13–20× realtime); CUDA is untested.
 - All numbers are warmed, min-of-repeated-runs, model load excluded — compare like-for-like only.
 
+**Windows / non-Apple platforms:** the model and CLI are fully portable (pure PyTorch + numpy; ffmpeg for audio decoding), but the Photon-speed configuration above is Apple-Silicon-specific — `mps` is Apple's GPU backend and does not exist on Windows. What changes:
+
+- **Setup commands:** venv activation is `.venv\Scripts\activate` (PowerShell: `.venv\Scripts\Activate.ps1`); git-lfs ships with the Git for Windows installer (or `winget install GitHub.GitLFS`); ffmpeg via `winget install Gyan.FFmpeg` — or skip it and `pip install soundfile` if your audio is already 16 kHz wav; hashes via `Get-FileHash weights\model.safetensors -Algorithm SHA256` instead of `shasum`.
+- **Use the CPU path:** `parakeet-redux-torch audio.wav --threads 1` — exact transcripts, but expect CPU-class speed, not the Apple-GPU numbers. The "1 thread beats 4" result was tuned on Apple Silicon; on x86, benchmark `--threads 1` against the default before trusting it.
+- **NVIDIA GPU:** `--device cuda` (optionally `--encoder-device cuda --encoder-dtype float16`) is wired through but **untested for numerical parity** — verify first: `python scripts/verify_photon_speed.py --device cuda` (expect 6/6 identical; treat a mismatch as a finding, not a fluke).
+- **Don't** use `--encoder-dtype float16` on CPU (slower — x86 has no fast fp16).
+- Whatever you run on: `python scripts/verify_photon_speed.py --device cpu` prints your machine's warmed timings and proves the 6/6 transcripts on your hardware.
+
 ## How it works
 
 ```
