@@ -29,6 +29,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--encoder-device", default=None,
                     help="run just the encoder on another device (e.g. mps); "
                          "TDT decoding stays on --device")
+    ap.add_argument("--encoder-dtype", choices=["float32", "float16"], default="float32",
+                    help="encoder compute dtype; float16 is ~30%% faster on the Apple GPU "
+                         "(MPS) with approximate (not exact) numerics -- see the README")
     ap.add_argument("--words", action="store_true", help="include word-level timestamps")
     ap.add_argument("--threads", type=int, default=None,
                     help="torch intra-op threads (Apple Silicon: 1 is fastest for this model)")
@@ -44,6 +47,8 @@ def main(argv: list[str] | None = None) -> int:
                                   verify_ternary=args.verify_ternary)
     if args.encoder_device:
         model.encoder.to(args.encoder_device)
+    if args.encoder_dtype == "float16":
+        model.encoder.half()
     tokenizer = ParakeetTokenizer(Path(args.model_dir) / "tokenizer.json")
     transcriber = Transcriber(model, tokenizer, config)
 

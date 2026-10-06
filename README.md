@@ -29,20 +29,21 @@ Component-level checks (rerunnable):
 
 ### Speed
 
-Apple M1 (16 GB), Python 3.11, torch 2.14.1, fp32, warmed up (wall time, min of repeated runs):
+Apple M1 (16 GB), Python 3.11, torch 2.14.1, warmed up (wall time, min of repeated runs):
 
-| file | audio | CPU (default) | CPU, `--threads 1` | GPU encoder (`--encoder-device mps`) | Photon CPU | Photon MPS |
-| --- | --- | --- | --- | --- | --- | --- |
-| `bcn_weather.mp3` | 11.0 s | 0.84 s (13× RT) | 0.63 s (17× RT) | **0.37 s (30× RT)** | 0.35 s (32× RT) | 0.29 s (39× RT) |
-| `mary_had_lamb.mp3` | 16.0 s | 1.01 s (16× RT) | 0.81 s (20× RT) | **0.52 s (31× RT)** | 0.49 s (33× RT) | 0.43 s (37× RT) |
+| file | audio | CPU (default) | CPU, `--threads 1` | GPU encoder (`--encoder-device mps`) | GPU enc., `--encoder-dtype float16` | Photon CPU | Photon MPS |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `bcn_weather.mp3` | 11.0 s | 0.84 s (13× RT) | 0.63 s (17× RT) | 0.37 s (30× RT) | **0.30 s (37× RT)** | 0.35 s (32× RT) | 0.29 s (39× RT) |
+| `mary_had_lamb.mp3` | 16.0 s | 1.01 s (16× RT) | 0.81 s (20× RT) | 0.52 s (31× RT) | **0.43 s (37× RT)** | 0.49 s (33× RT) | 0.43 s (37× RT) |
 
-Every configuration above was verified to reproduce the same six identical transcripts as Photon.
+All fp32 configurations reproduce the same six identical transcripts as Photon; the fp16 encoder path (approximate numerics — see notes) matches them too on all six files.
 
 Notes (all measured on this machine):
 
-- **`--encoder-device mps`** runs the encoder on the Apple GPU and keeps greedy TDT decoding on the CPU (per-step dispatch dominates those small tensors on the GPU). Within ~7% of Photon's CPU wall time: `parakeet-redux-torch audio.wav --threads 1 --encoder-device mps` is the fastest stock-PyTorch configuration found.
+- **`--encoder-device mps`** runs the encoder on the Apple GPU and keeps greedy TDT decoding on the CPU (per-step dispatch dominates those small tensors on the GPU). With `--threads 1` it is the fastest exact path: 0.37 s / 0.52 s.
+- **`--encoder-dtype float16`** (together with `--encoder-device mps`) casts **the encoder only** to half precision — like Photon's own GPU path. It cuts encoder time ~30%, landing at Photon-MPS parity (0.30 s / 0.43 s, ~37× realtime). Numerics are approximate (encoder output differs from fp32 by up to ~4e-4); while all six reference transcripts still match, rounding can in principle flip a borderline greedy decision on other audio — so fp32 stays the default.
 - **`--threads 1`** — torch intra-op threading *hurts* this workload on Apple Silicon (many small ops; thread hand-off costs more than it saves). On the reference machine one thread beats four by ~25%.
-- **Why Photon's CPU path is still faster:** its kernels compute directly from the 2-bit packed weights with NEON int8 dot-products (`gemm8`), quantize activations to int8, and fuse whole conformer blocks into single passes. This port materializes fp32 weights (~1.2 GB vs 160 MB packed) and runs stock fp32 `torch` ops. Options measured and not taken: dynamic int8 is unavailable in torch builds for macOS ARM (no functional quantized engine — `NoQEngine` at `linear_prepack`); `torch.compile` measured ~20% *slower* than eager here; replacing the slow per-group depthwise-conv fallback (~25k `slow_conv2d` dispatches) with a ~4× faster shifted multiply-add loop flipped borderline words on one test clip, so the exact path was kept.
+- **Why the pure-CPU path stays behind:** Photon's kernels compute directly from the 2-bit packed weights with NEON int8 dot-products (`gemm8`), quantize activations to int8, and fuse whole conformer blocks into single passes; this port materializes fp32 weights (~1.2 GB vs 160 MB packed) and runs stock `torch` ops, and dynamic int8 is unavailable in torch builds for macOS ARM (no functional quantized engine — `NoQEngine`). Other levers measured and not taken: `torch.compile` (~20% slower than eager on CPU, +2% on MPS), `scaled_dot_product_attention` fusing of the attention core (dispatches −10%, wall time unchanged), a bit-exact manual LSTM cell for the decode loop (~10% of decode, <3% end-to-end), and a faster shifted depthwise-conv formulation that flipped borderline words on one clip.
 
 ## Quickstart
 
@@ -61,8 +62,9 @@ git lfs pull          # or, without LFS:  python scripts/download_model.py
 # CLI
 parakeet-redux-torch testdata/bcn_weather.mp3 --words
 
-# fastest stock-PyTorch configuration on Apple Silicon (see Speed section)
-parakeet-redux-torch testdata/bcn_weather.mp3 --threads 1 --encoder-device mps
+# fastest configuration on Apple Silicon, ~37x realtime (see Speed section;
+# fp16 encoder = approximate numerics, drop the flag for the exact path)
+parakeet-redux-torch testdata/bcn_weather.mp3 --threads 1 --encoder-device mps --encoder-dtype float16
 ```
 
 ```python
@@ -114,7 +116,7 @@ weights/                model files shipped via Git LFS (CC-BY-4.0) + upstream c
 
 - **Long recordings:** this port processes the whole file in one pass and accepts up to 5000 encoder frames (~6.7 min per pass — the checkpoint's `max_position_embeddings`). The official runtime instead splits long recordings at VAD-pause boundaries (the checkpoint's `vad_head` weights are loaded and available in the state dict, but chunking is not implemented here). Beyond 5000 frames the transcriber raises with a clear message instead of silently degrading.
 - **Hardware:** verified on CPU (Apple M1) and on the Apple-Silicon GPU encoder path (`--encoder-device mps` — transcript parity checked on all six test files); `--device cuda` is wired through `load_model` but untested for numerical parity.
-- **fp32 throughout**; no int8/fp16 paths, no torch.compile, no batch mode.
+- **fp32 by default** (there is an opt-in fp16 encoder path for Apple GPUs — see Speed); no int8 paths, no torch.compile, no batch mode.
 - Transcripts preserve the model's own casing/punctuation; `fleur_es_sample.wav` shows expected Spanish output.
 
 ## Attribution & licenses
