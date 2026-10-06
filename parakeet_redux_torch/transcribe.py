@@ -31,7 +31,13 @@ class Transcriber:
     def transcribe_waveform(self, waveform: torch.Tensor,
                             with_words: bool = False) -> dict:
         mel = self.frontend(waveform)                 # [Tm, 128]
-        enc = self.model.encoder(mel.unsqueeze(0))[0]  # [Te, 1024]
+        # Follow the model's own device split: the encoder may live on a
+        # different device (e.g. MPS) than the TDT decoder (see the CLI's
+        # --encoder-device / README performance notes).
+        enc_device = next(self.model.encoder.parameters()).device
+        dec_device = next(self.model.encoder_projector.parameters()).device
+        enc = self.model.encoder(mel.unsqueeze(0).to(enc_device))[0]  # [Te, 1024]
+        enc = enc.to(dec_device)
         if self.max_encoder_frames is not None and enc.shape[0] > self.max_encoder_frames:
             raise ValueError(
                 f"audio needs {enc.shape[0]} encoder frames, over the "

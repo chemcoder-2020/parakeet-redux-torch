@@ -92,7 +92,7 @@
       "end": 10.24
     }
   ],
-  "wall_seconds": 0.841,
+  "wall_seconds": 0.835,
   "audio_seconds": 11.04,
   "mel_frames": 1104,
   "encoder_frames": 138

@@ -27,16 +27,22 @@ Component-level checks (rerunnable):
 - **Log-mel frontend vs librosa** — slaney mel filterbank agrees to 3.7e-09 (max abs, float32); the full frontend to 1.1e-06 on a 585-frame sample (`scripts/verify_mel_vs_librosa.py`).
 - **7/7 tests pass**: unpack + end-to-end transcription tests.
 
-### Speed (not the goal — Photon's kernels are better)
+### Speed
 
-Apple M1 CPU (16 GB), Python 3.11, torch 2.14.1, fp32, warmed up:
+Apple M1 (16 GB), Python 3.11, torch 2.14.1, fp32, warmed up (wall time, min of repeated runs):
 
-| file | audio | this port | Photon |
-| --- | --- | --- | --- |
-| `bcn_weather.mp3` | 11.0 s | 0.84 s (13.1× RT) | 0.33 s (33× RT) |
-| `mary_had_lamb.mp3` | 16.0 s | 1.01 s (15.7× RT) | 0.49 s (33× RT) |
+| file | audio | CPU (default) | CPU, `--threads 1` | GPU encoder (`--encoder-device mps`) | Photon CPU | Photon MPS |
+| --- | --- | --- | --- | --- | --- | --- |
+| `bcn_weather.mp3` | 11.0 s | 0.84 s (13× RT) | 0.63 s (17× RT) | **0.37 s (30× RT)** | 0.35 s (32× RT) | 0.29 s (39× RT) |
+| `mary_had_lamb.mp3` | 16.0 s | 1.01 s (16× RT) | 0.81 s (20× RT) | **0.52 s (31× RT)** | 0.49 s (33× RT) | 0.43 s (37× RT) |
 
-Comfortably real-time on a stock CPU. Photon is ~2.5–3× faster because its specialized kernels compute directly from the packed ternary representation; this port materializes fp32 weights and runs unmodified `torch` ops.
+Every configuration above was verified to reproduce the same six identical transcripts as Photon.
+
+Notes (all measured on this machine):
+
+- **`--encoder-device mps`** runs the encoder on the Apple GPU and keeps greedy TDT decoding on the CPU (per-step dispatch dominates those small tensors on the GPU). Within ~7% of Photon's CPU wall time: `parakeet-redux-torch audio.wav --threads 1 --encoder-device mps` is the fastest stock-PyTorch configuration found.
+- **`--threads 1`** — torch intra-op threading *hurts* this workload on Apple Silicon (many small ops; thread hand-off costs more than it saves). On the reference machine one thread beats four by ~25%.
+- **Why Photon's CPU path is still faster:** its kernels compute directly from the 2-bit packed weights with NEON int8 dot-products (`gemm8`), quantize activations to int8, and fuse whole conformer blocks into single passes. This port materializes fp32 weights (~1.2 GB vs 160 MB packed) and runs stock fp32 `torch` ops. Options measured and not taken: dynamic int8 is unavailable in torch builds for macOS ARM (no functional quantized engine — `NoQEngine` at `linear_prepack`); `torch.compile` measured ~20% *slower* than eager here; replacing the slow per-group depthwise-conv fallback (~25k `slow_conv2d` dispatches) with a ~4× faster shifted multiply-add loop flipped borderline words on one test clip, so the exact path was kept.
 
 ## Quickstart
 
@@ -53,6 +59,9 @@ python scripts/download_model.py
 
 # CLI
 parakeet-redux-torch testdata/bcn_weather.mp3 --words
+
+# fastest stock-PyTorch configuration on Apple Silicon (see Speed section)
+parakeet-redux-torch testdata/bcn_weather.mp3 --threads 1 --encoder-device mps
 ```
 
 ```python
@@ -102,7 +111,7 @@ testdata/               small public samples + recorded reference/our outputs (s
 ## Notes and limitations
 
 - **Long recordings:** this port processes the whole file in one pass and accepts up to 5000 encoder frames (~6.7 min per pass — the checkpoint's `max_position_embeddings`). The official runtime instead splits long recordings at VAD-pause boundaries (the checkpoint's `vad_head` weights are loaded and available in the state dict, but chunking is not implemented here). Beyond 5000 frames the transcriber raises with a clear message instead of silently degrading.
-- **Hardware:** verified on CPU (Apple M1); `--device mps/cuda` is wired through `load_model` but untested for numerical parity.
+- **Hardware:** verified on CPU (Apple M1) and on the Apple-Silicon GPU encoder path (`--encoder-device mps` — transcript parity checked on all six test files); `--device cuda` is wired through `load_model` but untested for numerical parity.
 - **fp32 throughout**; no int8/fp16 paths, no torch.compile, no batch mode.
 - Transcripts preserve the model's own casing/punctuation; `fleur_es_sample.wav` shows expected Spanish output.
 

@@ -26,14 +26,24 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--model-dir", default="weights",
                     help="directory containing model.safetensors + config.json + ternary.json + tokenizer.json")
     ap.add_argument("--device", default="cpu", help="torch device (cpu, mps, cuda)")
+    ap.add_argument("--encoder-device", default=None,
+                    help="run just the encoder on another device (e.g. mps); "
+                         "TDT decoding stays on --device")
     ap.add_argument("--words", action="store_true", help="include word-level timestamps")
+    ap.add_argument("--threads", type=int, default=None,
+                    help="torch intra-op threads (Apple Silicon: 1 is fastest for this model)")
     ap.add_argument("--json", action="store_true", help="print full result as JSON")
     ap.add_argument("--verify-ternary", action="store_true",
                     help="verify ternary unpacking against recorded zero-fractions")
     args = ap.parse_args(argv)
 
+    if args.threads:
+        torch.set_num_threads(args.threads)
+
     model, config, _ = load_model(args.model_dir, device=args.device,
                                   verify_ternary=args.verify_ternary)
+    if args.encoder_device:
+        model.encoder.to(args.encoder_device)
     tokenizer = ParakeetTokenizer(Path(args.model_dir) / "tokenizer.json")
     transcriber = Transcriber(model, tokenizer, config)
 

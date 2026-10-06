@@ -68,14 +68,17 @@ class RelPositionalEncoding(nn.Module):
     def __init__(self, d_model: int = 1024):
         super().__init__()
         self.d_model = d_model
-        inv_freq = 1.0 / (10000.0 ** (torch.arange(0, d_model, 2, dtype=torch.float64) / d_model))
-        self.register_buffer("inv_freq", inv_freq, persistent=False)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Returns pos_emb of shape [1, 2T-1, D] for a sequence of length T."""
         t = x.shape[1]
-        pos = torch.arange(t - 1, -t, -1, dtype=torch.float64, device=x.device)
-        freqs = pos[:, None] * self.inv_freq[None, :]
+        # float64 where available; MPS has no float64, and float32 there is
+        # well within the transcript-relevant precision.
+        dtype = torch.float32 if x.device.type == "mps" else torch.float64
+        inv_freq = 1.0 / (10000.0 ** (torch.arange(0, self.d_model, 2, dtype=dtype,
+                                                    device=x.device) / self.d_model))
+        pos = torch.arange(t - 1, -t, -1, dtype=dtype, device=x.device)
+        freqs = pos[:, None] * inv_freq[None, :]
         sin = freqs.sin()
         cos = freqs.cos()
         pos_emb = torch.stack([sin, cos], dim=-1).reshape(2 * t - 1, self.d_model)
