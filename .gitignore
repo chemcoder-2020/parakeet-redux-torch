@@ -1,0 +1,23 @@
+# virtualenvs (project + reference runs)
+.venv/
+.venv-ref/
+venv/
+env/
+
+# model weights (downloaded from HuggingFace, CC-BY-4.0, not part of this repo)
+weights/
+
+# reference sources cloned/fetched during development
+refs/
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# stray run artifacts
+testdata/*.err

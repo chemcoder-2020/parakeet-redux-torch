@@ -1,0 +1,88 @@
+{
+  "text": "Esto parece tener sentido ya que en la Tierra no se percibe su movimiento, ¿cierto?",
+  "wall_seconds": 3.453,
+  "segments": [
+    {
+      "text": "Esto parece tener sentido ya que en la Tierra no se percibe su movimiento,¿ cierto?",
+      "start": 0.32,
+      "end": 6.48,
+      "words": [
+        {
+          "word": "Esto",
+          "start": 0.32,
+          "end": 0.64
+        },
+        {
+          "word": "parece",
+          "start": 0.88,
+          "end": 1.36
+        },
+        {
+          "word": "tener",
+          "start": 1.36,
+          "end": 1.76
+        },
+        {
+          "word": "sentido",
+          "start": 1.76,
+          "end": 2.16
+        },
+        {
+          "word": "ya",
+          "start": 2.32,
+          "end": 2.64
+        },
+        {
+          "word": "que",
+          "start": 2.64,
+          "end": 2.88
+        },
+        {
+          "word": "en",
+          "start": 2.88,
+          "end": 3.04
+        },
+        {
+          "word": "la",
+          "start": 3.04,
+          "end": 3.2800000000000002
+        },
+        {
+          "word": "Tierra",
+          "start": 3.2800000000000002,
+          "end": 3.68
+        },
+        {
+          "word": "no",
+          "start": 3.68,
+          "end": 3.84
+        },
+        {
+          "word": "se",
+          "start": 3.84,
+          "end": 4.0
+        },
+        {
+          "word": "percibe",
+          "start": 4.0,
+          "end": 4.4
+        },
+        {
+          "word": "su",
+          "start": 4.5600000000000005,
+          "end": 4.8
+        },
+        {
+          "word": "movimiento,¿",
+          "start": 4.8,
+          "end": 5.5200000000000005
+        },
+        {
+          "word": "cierto?",
+          "start": 5.6000000000000005,
+          "end": 6.48
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "parakeet-redux-torch"
+version = "0.1.0"
+description = "Run moondream/parakeet-redux (ternary FastConformer-TDT ASR) in pure PyTorch - no moondream package, no Photon."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+dependencies = [
+    "torch>=2.2",
+    "numpy>=1.24",
+]
+
+[project.scripts]
+parakeet-redux-torch = "parakeet_redux_torch.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["parakeet_redux_torch*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

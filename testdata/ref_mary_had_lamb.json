@@ -1,0 +1,210 @@
+{
+  "text": "The uh first words I spoke in the original pornograph, a little piece of backslid poetry. Mary had a little lamb, it sweet was quite a snow, and everywhere that Mary went the lamb would sure to go.",
+  "wall_seconds": 3.57,
+  "segments": [
+    {
+      "text": "The uh first words I spoke in the original pornograph, a little piece of backslid poetry.",
+      "start": 0.64,
+      "end": 8.88,
+      "words": [
+        {
+          "word": "The",
+          "start": 0.64,
+          "end": 0.88
+        },
+        {
+          "word": "uh",
+          "start": 0.96,
+          "end": 1.12
+        },
+        {
+          "word": "first",
+          "start": 1.36,
+          "end": 1.52
+        },
+        {
+          "word": "words",
+          "start": 1.68,
+          "end": 2.0
+        },
+        {
+          "word": "I",
+          "start": 2.16,
+          "end": 2.32
+        },
+        {
+          "word": "spoke",
+          "start": 2.32,
+          "end": 2.8000000000000003
+        },
+        {
+          "word": "in",
+          "start": 2.8000000000000003,
+          "end": 3.12
+        },
+        {
+          "word": "the",
+          "start": 3.12,
+          "end": 3.44
+        },
+        {
+          "word": "original",
+          "start": 3.7600000000000002,
+          "end": 4.16
+        },
+        {
+          "word": "pornograph,",
+          "start": 4.48,
+          "end": 5.84
+        },
+        {
+          "word": "a",
+          "start": 6.0,
+          "end": 6.24
+        },
+        {
+          "word": "little",
+          "start": 6.24,
+          "end": 6.4
+        },
+        {
+          "word": "piece",
+          "start": 6.5600000000000005,
+          "end": 6.88
+        },
+        {
+          "word": "of",
+          "start": 6.88,
+          "end": 7.12
+        },
+        {
+          "word": "backslid",
+          "start": 7.12,
+          "end": 7.68
+        },
+        {
+          "word": "poetry.",
+          "start": 7.84,
+          "end": 8.88
+        }
+      ]
+    },
+    {
+      "text": "Mary had a little lamb, it sweet was quite a snow, and everywhere that Mary went the lamb would sure to go.",
+      "start": 8.88,
+      "end": 15.92,
+      "words": [
+        {
+          "word": "Mary",
+          "start": 8.88,
+          "end": 9.28
+        },
+        {
+          "word": "had",
+          "start": 9.44,
+          "end": 9.6
+        },
+        {
+          "word": "a",
+          "start": 9.6,
+          "end": 9.68
+        },
+        {
+          "word": "little",
+          "start": 9.68,
+          "end": 9.92
+        },
+        {
+          "word": "lamb,",
+          "start": 9.92,
+          "end": 10.32
+        },
+        {
+          "word": "it",
+          "start": 10.32,
+          "end": 10.4
+        },
+        {
+          "word": "sweet",
+          "start": 10.56,
+          "end": 10.8
+        },
+        {
+          "word": "was",
+          "start": 10.96,
+          "end": 11.120000000000001
+        },
+        {
+          "word": "quite",
+          "start": 11.120000000000001,
+          "end": 11.36
+        },
+        {
+          "word": "a",
+          "start": 11.36,
+          "end": 11.52
+        },
+        {
+          "word": "snow,",
+          "start": 11.52,
+          "end": 12.08
+        },
+        {
+          "word": "and",
+          "start": 12.08,
+          "end": 12.32
+        },
+        {
+          "word": "everywhere",
+          "start": 12.32,
+          "end": 12.64
+        },
+        {
+          "word": "that",
+          "start": 12.8,
+          "end": 13.040000000000001
+        },
+        {
+          "word": "Mary",
+          "start": 13.040000000000001,
+          "end": 13.36
+        },
+        {
+          "word": "went",
+          "start": 13.44,
+          "end": 13.68
+        },
+        {
+          "word": "the",
+          "start": 13.76,
+          "end": 13.84
+        },
+        {
+          "word": "lamb",
+          "start": 13.84,
+          "end": 14.16
+        },
+        {
+          "word": "would",
+          "start": 14.24,
+          "end": 14.48
+        },
+        {
+          "word": "sure",
+          "start": 14.48,
+          "end": 14.8
+        },
+        {
+          "word": "to",
+          "start": 14.8,
+          "end": 15.120000000000001
+        },
+        {
+          "word": "go.",
+          "start": 15.120000000000001,
+          "end": 15.92
+        }
+      ]
+    }
+  ]
+}
